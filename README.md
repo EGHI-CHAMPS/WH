@@ -1,3 +1,4 @@
-<img src="https://github.com/user-attachments/assets/2742e8a5-a67e-42ab-b5be-8e3f4f3b0b22" width="300">
+
+<img src="https://github.com/user-attachments/assets/b55ddbce-cdc5-47e1-9e5c-c4ad8323be16" width="300">
 
 **Purpose**: Automate generation of tables and figures routinely requested by PSTs.
