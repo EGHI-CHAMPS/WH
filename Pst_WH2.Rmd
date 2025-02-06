@@ -860,11 +860,11 @@ kp_combined <- kp_tac_summary %>%
   left_join(kp_cases_ch, by = "month_old") %>%
   mutate(
     month_old_label = case_when(
-      month_old == "28d to <2 months" ~ "28d to <2 months (n=178)",  # Manually specify
-      month_old == "2 to <3 months" ~ "2 to <3 months (n=106)",      # Manually specify
-      month_old == "3 to <4 months" ~ "3 to <4 months (n=82)",       # Manually specify
-      month_old == "4 to <5 months" ~ "4 to <5 months (n=61)",       # Manually specify
-      month_old == "5 to <6 months" ~ "5 to <6 months (n=73)"        # Manually specify
+      month_old == "28d to <2 months" ~ "28d to <2 months (n=178)",  
+      month_old == "2 to <3 months" ~ "2 to <3 months (n=106)",      
+      month_old == "3 to <4 months" ~ "3 to <4 months (n=82)",       
+      month_old == "4 to <5 months" ~ "4 to <5 months (n=61)",       
+      month_old == "5 to <6 months" ~ "5 to <6 months (n=73)"        
     )
   ) %>%
   arrange(factor(month_old, levels = c(
