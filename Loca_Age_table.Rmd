@@ -1,0 +1,205 @@
+---
+title: "Table_Loca_Age"
+author: "Wendy He"
+date: "2025-02-13"
+output: html_document
+---
+
+```{r}
+# Load libraries
+library(tidyr)
+library(dplyr)
+library(readxl)
+library(tidyverse)
+library(viridis)
+library(lubridate)
+library(gt)
+library(knitr)
+library(kableExtra)
+library(VennDiagram)
+library(purrr)
+
+setwd("/Users/wendyyy/Documents/CHAMPS_Epi Work/Original Code")
+AnalyticData <- read.csv("vw_lk_Analytics_Dataset_2024-09-18_12-12-47.csv", stringsAsFactors=FALSE, na.strings=c("",".","NA"))
+TacData <- read.csv("vw_lk_TacLaboratoryResult_Pivot_2024-09-17_14-22-48.csv", stringsAsFactors=FALSE, na.strings=c("",".","NA"))
+```
+
+```{r}
+AnalyticData <-AnalyticData %>%
+  filter(MITS_flag==1) %>%
+  filter(publication_suspended!=1 & !is.na(publication_suspended)) %>%
+  filter(sensitive_case!=1 & !is.na(sensitive_case)) %>%
+  filter(M00060==1) %>%
+  filter(site_name != "Nigeria")
+```
+
+```{r}
+AnalyticData <- AnalyticData %>%
+  mutate(
+    age_group = case_when(
+      age_group == "CH00716" ~ "Stillbirth",
+      age_group == "CH00718" ~ "Infant (28 days to less than 12 months)",
+      age_group == "CH00719" ~ "Child (12 months to less than 60 months)",
+      age_group == "CH01404" ~ "Death in the first 24 hours",
+      age_group == "CH01405" ~ "Early Neonate (1 to 6 days)",
+      age_group == "CH01406" ~ "Late Neonate (7 to 27 days)",
+      TRUE ~ age_group # Retain original value for unmatched cases
+    )
+  )
+```
+
+
+```{r}
+vars_eti<-c("Underlying_Cause_Factor_etiol1","Underlying_Cause_Factor_etiol1_othr","Underlying_Cause_Factor_etiol2","Underlying_Cause_Factor_etiol2_othr",
+            "Underlying_Cause_Factor_etiol3","Underlying_Cause_Factor_etiol3_othr","Immediate_Cause_of_Death_etiol1","Immediate_Cause_of_Death_etiol1_othr",
+            "Immediate_Cause_of_Death_etiol2","Immediate_Cause_of_Death_etiol2_othr","Immediate_Cause_of_Death_etiol3","Immediate_Cause_of_Death_etiol3_othr",
+            "Morbid_Condition_01_etiol1","Morbid_Condition_01_etiol1_othr","Morbid_Condition_01_etiol2","Morbid_Condition_01_etiol2_othr",
+            "Morbid_Condition_01_etiol3","Morbid_Condition_01_etiol3_othr","Morbid_Condition_02_etiol1","Morbid_Condition_02_etiol1_othr",     
+            "Morbid_Condition_02_etiol2","Morbid_Condition_02_etiol2_othr","Morbid_Condition_02_etiol3","Morbid_Condition_02_etiol3_othr",
+            "Morbid_Condition_03_etiol1","Morbid_Condition_03_etiol1_othr","Morbid_Condition_03_etiol2","Morbid_Condition_03_etiol2_othr",
+            "Morbid_Condition_03_etiol3","Morbid_Condition_03_etiol3_othr","Morbid_Condition_04_etiol1","Morbid_Condition_04_etiol1_othr",
+            "Morbid_Condition_04_etiol2","Morbid_Condition_04_etiol2_othr","Morbid_Condition_04_etiol3","Morbid_Condition_04_etiol3_othr",
+            "Morbid_Condition_05_etiol1","Morbid_Condition_05_etiol1_othr","Morbid_Condition_05_etiol2","Morbid_Condition_05_etiol2_othr",
+            "Morbid_Condition_05_etiol3","Morbid_Condition_05_etiol3_othr","Morbid_Condition_06_etiol1","Morbid_Condition_06_etiol1_othr",
+            "Morbid_Condition_06_etiol2","Morbid_Condition_06_etiol2_othr","Morbid_Condition_06_etiol3","Morbid_Condition_06_etiol3_othr",
+            "Morbid_Condition_07_etiol1","Morbid_Condition_07_etiol1_othr","Morbid_Condition_07_etiol2","Morbid_Condition_07_etiol2_othr",
+            "Morbid_Condition_07_etiol3","Morbid_Condition_07_etiol3_othr","Morbid_Condition_08_etiol1","Morbid_Condition_08_etiol1_othr",
+            "Morbid_Condition_08_etiol2","Morbid_Condition_08_etiol2_othr","Morbid_Condition_08_etiol3","Morbid_Condition_08_etiol3_othr") 
+
+
+```
+
+
+
+
+```{r}
+# Define updated country columns and their populations
+location_data <- tibble(
+  Location = c("Bangladesh", "Ethiopia", "Kenya", "Mali", "Mozambique", "Sierra Leone", "South Africa"),
+  Total_People = c(804, 925, 911, 599, 1338, 911, 1279)
+)
+
+# Define updated age group and total deaths
+age_group_data <- tibble(
+  age_group = c("CH00716", "CH00718", "CH00719", "CH01404", "CH01405", "CH01406"),
+  Total_Deaths = c(2567, 835, 770, 1018, 1114, 463)
+)
+
+# Map age group labels for readability
+age_group_labels <- c(
+  "CH00716" = "Stillbirth (n=2567)",
+  "CH00718" = "Infant (28 days to less than 12 months) (n=835)",
+  "CH00719" = "Child (12 months to less than 60 months) (n=770)",
+  "CH01404" = "Death in the first 24 hours (n=1018)",
+  "CH01405" = "Early Neonate (1 to 6 days) (n=1114)",
+  "CH01406" = "Late Neonate (7 to 27 days) (n=463)"
+)
+
+# Define column order based on country names
+country_columns <- location_data$Location
+
+# Filter Staphylococcus aureus cases and summarize
+staph_cases <- AnalyticData %>%
+  select(site_name, age_group) %>%
+  filter(apply(AnalyticData[vars_eti], 1, function(row) any(grepl("Staphylococcus aureus", row, ignore.case = TRUE)))) %>%
+  group_by(site_name, age_group) %>%
+  summarise(Staph_Cases = n(), .groups = 'drop')
+
+# Reshape the data so that locations become columns
+staph_table <- staph_cases %>%
+  pivot_wider(names_from = site_name, values_from = Staph_Cases, values_fill = list(Staph_Cases = 0))
+
+# Add readable age group labels
+staph_table <- staph_table %>%
+  mutate(age_group = recode(age_group, !!!age_group_labels))
+
+# Add total cases column for each row
+staph_table <- staph_table %>%
+  rowwise() %>%
+  mutate(Total_cases = sum(c_across(all_of(country_columns)), na.rm = TRUE)) %>%
+  ungroup()
+
+# Calculate totals for each column
+site_totals <- staph_table %>%
+  summarise(across(all_of(country_columns), ~ sum(.x, na.rm = TRUE)))
+
+# Prepare TOTAL row with column totals and formatted percentages
+total_row <- site_totals %>%
+  mutate(
+    age_group = "TOTAL",
+    Row_Total_Percentage = paste0(
+      sum(as.numeric(unlist(site_totals)), na.rm = TRUE),
+      " (",
+      round(sum(as.numeric(unlist(site_totals)), na.rm = TRUE) / sum(location_data$Total_People) * 100, 1),
+      "%)"
+    )
+  )
+
+for (i in seq_along(country_columns)) {
+  site_total <- as.numeric(total_row[[country_columns[i]]])
+  population <- location_data %>% filter(Location == country_columns[i]) %>% pull(Total_People)
+  total_row[[country_columns[i]]] <- paste0(site_total, " (", round((site_total / population) * 100, 1), "%)")
+}
+
+# Calculate row total percentage for each age group
+staph_table <- staph_table %>%
+  rowwise() %>%
+  mutate(
+    Row_Total_Percentage = ifelse(
+      Total_cases > 0,
+      paste0(
+        Total_cases,
+        " (",
+        round((Total_cases / sum(location_data$Total_People)) * 100, 1),
+        "%)"
+      ),
+      NA
+    )
+  ) %>%
+  ungroup()
+
+staph_table <- staph_table %>%
+  mutate(
+    age_group_original = age_group,  # Keep a backup of original values
+    age_group = recode(age_group, !!!age_group_labels, .default = "MISSING")
+  )
+
+print(unique(staph_table$age_group))  # Check if "MISSING" appears
+
+
+
+# Convert all numeric columns in staph_table to character for compatibility
+staph_table <- staph_table %>%
+  mutate(across(all_of(country_columns), as.character))
+
+# Append TOTAL row to the table
+final_table <- staph_table %>%
+  bind_rows(total_row)
+
+# Reorder rows based on desired age group order
+age_group_order <- c(
+  "Stillbirth (n=2567)",
+  "Death in the first 24 hours (n=1018)",
+  "Early Neonate (1 to 6 days) (n=1114)",
+  "Late Neonate (7 to 27 days) (n=463)",
+  "Infant (28 days to less than 12 months) (n=835)",
+  "Child (12 months to less than 60 months) (n=770)",
+  "TOTAL"
+)
+
+final_table <- final_table %>%
+  mutate(age_group = factor(age_group, levels = age_group_order)) %>%
+  arrange(age_group)
+
+# Preserve "Row Total Percentage"
+final_table <- final_table %>%
+  select(age_group, all_of(country_columns), Row_Total_Percentage)
+
+view(fina_table) 
+```
+
+
+
+
+
+
